@@ -1,8 +1,6 @@
 
 # STORM: Strategic Tracing & Resilient Intelligence Kinetic Engine
 
-\<br\>
-
 **STORM** is a comprehensive, end-to-end monitoring framework designed for modern, multi-language application environments. Built on a robust, industry-standard stack of **Prometheus** and **Grafana**, STORM provides the essential oversight needed to ensure the stability, performance, and reliability of your mission-critical systems.
 
 With a focus on automation, all deployments and configurations are managed using **Ansible**, allowing you to set up and scale your monitoring infrastructure with a single command.
