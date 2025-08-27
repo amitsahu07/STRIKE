@@ -1,6 +1,3 @@
-I will provide the full content of the `README.md` file here for you to copy.
-
------
 
 # STORM: Strategic Tracing & Resilient Intelligence Kinetic Engine
 
