@@ -1,24 +1,82 @@
-# STRIKE
-STRIKE : Strategic Tracing &amp; Resilient Intelligence Kinetic Engine
-STRIKE: Strategic Tracing & Resilient Intelligence Kinetic EngineOverviewSTRIKE is a powerful, open-source framework designed for comprehensive, multi-layered observability. Built on a robust stack of industry-leading tools, it provides a holistic view of your systems, from low-level infrastructure to high-level business metrics. With STRIKE, you gain the strategic intelligence needed to ensure the performance, reliability, and security of your entire technology stack.Key FeaturesFull-Stack Observability: Monitor Java Spring Boot applications, C++, Python, and any other language-agnostic applications by integrating with Prometheus via both scraping and pushing metrics.Infrastructure & Network Monitoring: Gain deep insights into the health of your servers, network devices, and other critical infrastructure components.Business Metrics Intelligence: Go beyond technical metrics by instrumenting your application code to capture business-critical data (e.g., transaction volume, user sign-ups, API call success rates), providing actionable intelligence for business decisions.Unified Visualization: All metrics are presented in elegant, customizable dashboards built with Grafana, offering a single pane of glass for all your monitoring needs.Automated Deployment & Configuration: Leverage the power of Ansible to automate the entire deployment process, from setting up servers to pushing and syncing configuration files for Prometheus and Grafana.Actionable Alerting: Receive timely and contextual alerts for anomalies and failures, enabling a proactive and rapid response to issues.ArchitectureSTRIKE's architecture is built on a proven, scalable, and modular stack:Prometheus: The core of the data collection engine. It scrapes metrics from configured endpoints and can receive metrics pushed from short-lived jobs.Alertmanager: Processes and routes alerts from Prometheus, enabling powerful grouping, deduplication, and routing to your preferred notification channels.Grafana: The visualization and dashboarding layer, providing a beautiful and intuitive interface for exploring your metrics.Ansible: The automation engine for deployment, configuration management, and ensuring the entire stack is in a consistent, desired state.Getting StartedFollow these steps to deploy and configure STRIKE.PrerequisitesA control machine with Ansible installed.Target servers for Prometheus, Grafana, and any application exporters you wish to deploy.Python 3.x on all target servers.Step 1: Clone the Repositorygit clone https://github.com/your-username/strike.git
-cd strike
-Step 2: Configure Your InventoryDefine your infrastructure in the ansible/inventory file. This is where you specify the servers for each component (Prometheus, Grafana, etc.).[prometheus_servers]
-prometheus_server_1
+I will provide the full content of the `README.md` file here for you to copy.
 
-[grafana_servers]
-grafana_server_1
+-----
 
-[node_exporters]
-host_1
-host_2
+# STORM: Strategic Tracing & Resilient Intelligence Kinetic Engine
 
-# Add your application servers here
-[java_spring_apps]
-spring_app_1
-Step 3: Define Metrics & DashboardsUse Ansible to manage your Prometheus and Grafana configurations.Prometheus Configuration: Edit the ansible/roles/prometheus/templates/prometheus.yml.j2 file to add new scrape jobs for your applications and services. The following is an example for a Java Spring Boot app:# In prometheus.yml.j2
-- job_name: 'java_spring_apps'
-  metrics_path: /actuator/prometheus
-  static_configs:
-    - targets: ['spring_app_1:8080']
-Grafana Dashboards: Store your Grafana dashboard JSON files in ansible/roles/grafana/files/dashboards/. The Ansible playbook will automatically sync these to your Grafana instance.Step 4: Run the Ansible PlaybookExecute the main playbook to deploy the entire STRIKE stack.ansible-playbook -i ansible/inventory ansible/playbooks/site.yml
-This single command will:Install Prometheus, Alertmanager, and Grafana.Push and sync all configuration files.Start all necessary services on your target servers.Step 5: Instrument Your ApplicationsTo monitor C++ or Python applications, you'll use a client library to expose metrics on an HTTP endpoint for Prometheus to scrape. For Java Spring Boot, you can use the built-in Prometheus Actuator.C++ Example: Use a library like prometheus-cpp to expose a metrics endpoint.Python Example: Use prometheus_client to expose metrics.Pushgateway: For short-lived jobs, use the Prometheus Pushgateway, which allows your applications to "push" metrics to Prometheus.Step 6: Access & VisualizeOnce the playbook completes, you can access your Grafana instance at http://<grafana_server_ip>:3000. Log in with default credentials (admin/admin), and you will find your pre-configured dashboards ready to go.ContributingWe welcome contributions! Please feel free to open an issue or submit a pull request. For a detailed guide on how to contribute, please see our CONTRIBUTING.md file.LicenseThis project is licensed under the Apache License 2.0. See the LICENSE file for details.STRIKE: Strategic Tracing & Resilient Intelligence Kinetic Engine.
+\<br\>
+
+**STORM** is a comprehensive, end-to-end monitoring framework designed for modern, multi-language application environments. Built on a robust, industry-standard stack of **Prometheus** and **Grafana**, STORM provides the essential oversight needed to ensure the stability, performance, and reliability of your mission-critical systems.
+
+With a focus on automation, all deployments and configurations are managed using **Ansible**, allowing you to set up and scale your monitoring infrastructure with a single command.
+
+## 🌟 Features
+
+  * **Holistic Monitoring:** Collect metrics from a wide range of sources, including **Java Spring, C++, Python, and other applications**.
+  * **Flexible Data Collection:** Utilize **Prometheus** for both **pull-based scraping** of metrics from instrumented applications and **push-based collection** for ephemeral jobs or short-lived processes.
+  * **Unified Visualization:** Create dynamic, real-time dashboards with **Grafana** to visualize infrastructure, application, network, and business metrics.
+  * **Code-Level Metrics:** Instrument your applications to expose custom business metrics, giving you visibility into key performance indicators (KPIs) from within your code.
+  * **Full Automation:** Deploy the entire monitoring stack, including Prometheus, Grafana, exporters, and application configurations, using **Ansible playbooks**. This ensures consistency and reproducibility across all environments.
+  * **Resilient Design:** The framework is built to be scalable and resilient, allowing it to handle high volumes of data from complex, distributed systems.
+
+## 🚀 Getting Started
+
+The easiest way to get STORM up and running is with the provided Ansible playbooks.
+
+### Prerequisites
+
+  * **Ansible:** Ensure Ansible is installed on your control machine.
+  * **Target Servers:** Have access to the servers where you will deploy Prometheus, Grafana, and various exporters.
+
+### Deployment
+
+1.  **Clone the Repository:**
+
+    ```bash
+    git clone https://github.com/yourusername/storm.git
+    cd storm
+    ```
+
+2.  **Configure Ansible Inventory:**
+    Update the `ansible/inventory` file with the hostnames or IP addresses of your target servers.
+
+3.  **Run the Playbook:**
+    Execute the main Ansible playbook to deploy the entire stack. This will install and configure Prometheus, Grafana, and common exporters.
+
+    ```bash
+    ansible-playbook -i ansible/inventory ansible/main.yml
+    ```
+
+## 🛠️ Components
+
+### Prometheus
+
+  * The core metrics engine. Configured via Ansible to scrape metrics from:
+      * **Node Exporter:** For host-level metrics (CPU, memory, disk).
+      * **JMX Exporter:** For metrics from Java applications (JVM, custom metrics).
+      * **C++ & Python Exporters:** Use client libraries to expose metrics for scraping.
+      * **Prometheus Pushgateway:** For metrics from batch jobs or short-lived processes.
+
+### Grafana
+
+  * The primary visualization tool. Ansible will automatically:
+      * Install Grafana.
+      * Set up the Prometheus data source.
+      * Push and synchronize pre-built dashboards for a quick start.
+
+### Ansible Playbooks
+
+  * Organized into roles for modularity.
+  * `prometheus_role`: Installs and configures the Prometheus server.
+  * `grafana_role`: Installs and configures Grafana, including dashboard provisioning.
+  * `exporters_role`: Installs and manages various exporters (Node, JMX, etc.) on target hosts.
+
+## 🤝 Contribution
+
+We welcome contributions\! Please feel free to open issues or submit pull requests to help improve STORM. See the `CONTRIBUTING.md` file for more details.
+
+## 📄 License
+
+This project is licensed under the **Apache License 2.0**. See the `LICENSE` file for more details.
+
+-----
