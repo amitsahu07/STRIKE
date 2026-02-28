@@ -1,17 +1,29 @@
+Building an **EFX Latency Monitoring Stack** with an AI Analyst from scratch is a multi-stage engineering project. It involves setting up an observability pipeline (Prometheus + Grafana) and a reasoning layer (Llama 3.2 via Ollama).
+
+Here are the detailed, step-by-step instructions.
+
+---
 
 ## Phase 1: Infrastructure Setup (Docker)
 
-We need a place to store metrics (Prometheus), a dashboard (Grafana), and a "mailbox" for our Python script to drop data (Pushgateway).
+We will use Docker to run the monitoring "engine." This ensures all services can talk to each other without polluting your Mac's system files.
 
-1. **Create a project folder:** `mkdir my-llama-project && cd my-llama-project`
-2. **Create `docker-compose.yml**`:
+1. **Create a Project Directory:**
+```bash
+mkdir efx-monitoring && cd efx-monitoring
 
+```
+
+
+2. **Create the `docker-compose.yml`:**
+This file defines your metrics database and dashboard.
 ```yaml
 services:
   prometheus:
     image: prom/prometheus
     ports: ["9090:9090"]
-    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
   pushgateway:
     image: prom/pushgateway
@@ -25,9 +37,13 @@ services:
 
 ```
 
-3. **Create `prometheus.yml**` (Crucial: This tells Prometheus to look at the Pushgateway):
 
+3. **Create `prometheus.yml`:**
+This tells Prometheus to scrape the Pushgateway every 5 seconds.
 ```yaml
+global:
+  scrape_interval: 5s
+
 scrape_configs:
   - job_name: 'pushgateway'
     honor_labels: true
@@ -36,24 +52,47 @@ scrape_configs:
 
 ```
 
-4. **Launch:** `docker-compose up -d`
+
+4. **Launch the Stack:**
+```bash
+docker-compose up -d
+
+```
+
+
 
 ---
 
-## Phase 2: The EFX Data Generator
+## Phase 2: Llama Model & Python Setup
 
-This script simulates trades across venues like LMAX and EBS and pushes them to our stack.
+Now we set up the "Brain" on your Mac Mini.
 
-1. **Setup Python:**
-
+1. **Install & Start Ollama:**
+* Download from [ollama.com](https://ollama.com).
+* Open your terminal and pull the optimized model:
 ```bash
-python -m venv .venv
+ollama pull llama3.2
+
+```
+
+
+
+
+2. **Set up the Python Environment:**
+```bash
+python3 -m venv .venv
 source .venv/bin/activate
 pip install prometheus_client requests ollama
 
 ```
 
-2. **Create `trade_gen.py**`:
+
+
+---
+
+## Phase 3: Mock Data Generation (`trade_gen.py`)
+
+This script acts as your "Trading Engine," simulating real-time market activity.
 
 ```python
 import time, random
@@ -66,98 +105,87 @@ latency_histo = Histogram('efx_latency_seconds', 'Trade Latency',
 venues = ['LMAX', 'EBS', 'Currenex']
 pairs = ['EUR/USD', 'USD/JPY']
 
-print("🚀 Starting EFX Data Feed...")
+print("🚀 Simulating EFX Market Feed...")
 while True:
     v, p = random.choice(venues), random.choice(pairs)
-    # Simulate 5ms to 50ms latency
-    lat = random.uniform(0.005, 0.050) 
-    latency_histo.labels(venue=v, pair=p).observe(lat)
+    # Normal latency 5-50ms; Random 1s spike every 20 trades
+    lat = 1.0 if random.random() > 0.95 else random.uniform(0.005, 0.050)
     
-    push_to_gateway('localhost:9091', job='efx_generator', registry=registry)
-    time.sleep(1) # One trade per second
+    latency_histo.labels(venue=v, pair=p).observe(lat)
+    push_to_gateway('localhost:9091', job='efx_engine', registry=registry)
+    time.sleep(1)
 
 ```
 
-*Run this in a separate terminal window: `python trade_gen.py*`
-
 ---
 
-## Phase 3: The Llama AI Analyst
+## Phase 4: The AI Analyst (`ai_analyst.py`)
 
-Now we build the "Brain" that can read these metrics.
-
-1. **Pull the Model:** `ollama pull llama3.2`
-2. **Create `ai_analyst.py**`:
+This script is the **Tool-Calling Agent**. It doesn't just "chat"—it knows how to query Prometheus.
 
 ```python
 import ollama, requests, json
 
-def query_prom(query):
-    r = requests.get("http://localhost:9090/api/v1/query", params={'query': query})
+def query_prometheus(promql):
+    """Executes a PromQL query against the local Prometheus server."""
+    r = requests.get("http://localhost:9090/api/v1/query", params={'query': promql})
     return str(r.json()['data']['result'])
 
-def run_analyst(user_prompt):
-    model = 'llama3.2'
-    system_msg = "You are an EFX expert. Use 'query_prometheus' to check latencies. Metric: efx_latency_seconds."
-    
-    # 1. Ask Llama
-    res = ollama.chat(model=model, messages=[
-        {'role': 'system', 'content': system_msg},
-        {'role': 'user', 'content': user_prompt}
-    ], tools=[{
+def ask_analyst(user_prompt):
+    # 1. Define the tool for Llama
+    tools = [{
         'type': 'function',
         'function': {
             'name': 'query_prometheus',
-            'description': 'Get live EFX metrics',
-            'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}}
+            'description': 'Retrieve live EFX latency metrics using PromQL.',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'promql': {'type': 'string', 'description': 'The PromQL query string'}
+                },
+                'required': ['promql']
+            }
         }
-    }])
+    }]
 
-    # 2. Execute Tool if Llama asks
-    if res.message.tool_calls:
-        for tool in res.message.tool_calls:
-            args = json.loads(tool.function.arguments)
-            result = query_prom(args['query'])
-            
-            # 3. Get Final Answer
-            final = ollama.chat(model=model, messages=[
-                {'role': 'user', 'content': user_prompt},
-                res.message,
-                {'role': 'tool', 'content': result}
-            ])
-            print(f"\n🤖 Analyst: {final.message.content}")
+    # 2. Initial Chat
+    messages = [{'role': 'user', 'content': user_prompt}]
+    response = ollama.chat(model='llama3.2', messages=messages, tools=tools)
 
-run_analyst("Which venue has the highest latency right now?")
+    # 3. Process Tool Call
+    if response.message.tool_calls:
+        for tool in response.message.tool_calls:
+            if tool.function.name == 'query_prometheus':
+                args = json.loads(tool.function.arguments)
+                print(f"🔍 AI Querying: {args['promql']}")
+                result = query_prometheus(args['promql'])
+                
+                # 4. Final Reasoning
+                messages.append(response.message)
+                messages.append({'role': 'tool', 'content': result})
+                final_res = ollama.chat(model='llama3.2', messages=messages)
+                print(f"\n🤖 Analyst: {final_res.message.content}")
+
+# Example Usage
+ask_analyst("Which venue has the highest average latency right now?")
 
 ```
 
 ---
 
-## Phase 4: Visualization (Grafana)
+## Phase 5: Testing & Mock Prompts
 
-1. Open `http://localhost:3000` (User: `admin` / Pass: `admin`).
-2. **Add Data Source:** Select **Prometheus** and set URL to `http://prometheus:9090`.
-3. **Create Dashboard:** Add a "Time Series" panel.
-4. **Query:** `rate(efx_latency_seconds_sum[1m]) / rate(efx_latency_seconds_count[1m])`
-* This shows the **Average Latency per Venue** in real-time.
+Once `trade_gen.py` and the Docker containers are running, test your setup with these specific prompts in `ai_analyst.py`:
 
-
+* **Health Check:** *"Is the EBS venue seeing any latency spikes above 500ms?"*
+* **Performance Comparison:** *"Compare the trade volume of EUR/USD across all venues."*
+* **Root Cause Analysis:** *"I'm seeing a slowdown. Identify the specific venue and currency pair causing it."*
 
 ---
 
-## Phase 5: Mock Prompts for Testing
+## Phase 6: Visualization (Grafana)
 
-Once the setup is running, try these prompts in your `ai_analyst.py`:
-
-* **Connectivity Check:** *"Is the Prometheus server currently scraping data?"*
-* **Latency Analysis:** *"Compare the P95 latency between LMAX and EBS for the last minute."*
-* **Troubleshooting:** *"I'm seeing a slowdown on USD/JPY. Can you identify which venue is responsible?"*
-
-### Summary Checklist for GitHub README:
-
-1. **Prerequisites:** Install Docker & Ollama.
-2. **Step 1:** `docker-compose up`.
-3. **Step 2:** Start `trade_gen.py` (The Feed).
-4. **Step 3:** Run `ai_analyst.py` (The Brain).
-
-**Would you like me to show you how to add an "Alerting" function to the Python script so Llama sends you a message if latency exceeds 100ms?**
+1. Navigate to `http://localhost:3000` (admin/admin).
+2. Add **Data Source**: Select **Prometheus** and use URL `http://prometheus:9090`.
+3. **New Dashboard**: Add a "Time Series" panel using this query to see latency by venue:
+`avg by (venue) (rate(efx_latency_seconds_sum[1m]) / rate(efx_latency_seconds_count[1m]))`
