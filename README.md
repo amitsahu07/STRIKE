@@ -1,77 +1,81 @@
 
-# STORM: Strategic Tracing & Resilient Intelligence Kinetic Engine
+# EFX Trade Latency Monitoring & AI Analyst
 
-**STORM** is a comprehensive, end-to-end monitoring framework designed for modern, multi-language application environments. Built on a robust, industry-standard stack of **Prometheus** and **Grafana**, STORM provides the essential oversight needed to ensure the stability, performance, and reliability of your mission-critical systems.
+This project implements a real-time monitoring pipeline for Electronic Foreign Exchange (EFX) trade latencies across multiple venues, featuring an **AI-powered Trading Assistant** (Llama 3.2) that can query metrics using natural language.
 
-With a focus on automation, all deployments and configurations are managed using **Ansible**, allowing you to set up and scale your monitoring infrastructure with a single command.
+## 🚀 System Overview
 
-## 🌟 Features
+The architecture consists of three core layers:
 
-  * **Holistic Monitoring:** Collect metrics from a wide range of sources, including **Java Spring, C++, Python, and other applications**.
-  * **Flexible Data Collection:** Utilize **Prometheus** for both **pull-based scraping** of metrics from instrumented applications and **push-based collection** for ephemeral jobs or short-lived processes.
-  * **Unified Visualization:** Create dynamic, real-time dashboards with **Grafana** to visualize infrastructure, application, network, and business metrics.
-  * **Code-Level Metrics:** Instrument your applications to expose custom business metrics, giving you visibility into key performance indicators (KPIs) from within your code.
-  * **Full Automation:** Deploy the entire monitoring stack, including Prometheus, Grafana, exporters, and application configurations, using **Ansible playbooks**. This ensures consistency and reproducibility across all environments.
-  * **Resilient Design:** The framework is built to be scalable and resilient, allowing it to handle high volumes of data from complex, distributed systems.
+1. **Data Layer:** A Python-based simulator generating synthetic EFX trades (LMAX, EBS, etc.) with realistic latency jitter.
+2. **Infrastructure Layer:** Prometheus for metric storage and a Pushgateway to handle high-frequency event ingestion.
+3. **Intelligence Layer:** A Llama 3.2 "Agent" that uses Function Calling to execute PromQL queries and analyze venue performance.
 
-## 🚀 Getting Started
+## 🛠️ Setup Instructions
 
-The easiest way to get STORM up and running is with the provided Ansible playbooks.
+### 1. Infrastructure (Docker)
 
-### Prerequisites
+Spin up the Prometheus stack using the provided `docker-compose.yml`:
 
-  * **Ansible:** Ensure Ansible is installed on your control machine.
-  * **Target Servers:** Have access to the servers where you will deploy Prometheus, Grafana, and various exporters.
+```bash
+docker-compose up -d
 
-### Deployment
+```
 
-1.  **Clone the Repository:**
+* **Prometheus:** `http://localhost:9090`
+* **Pushgateway:** `http://localhost:9091`
 
-    ```bash
-    git clone https://github.com/yourusername/storm.git
-    cd storm
-    ```
+### 2. Environment Setup
 
-2.  **Configure Ansible Inventory:**
-    Update the `ansible/inventory` file with the hostnames or IP addresses of your target servers.
+Create a virtual environment and install the required Python dependencies:
 
-3.  **Run the Playbook:**
-    Execute the main Ansible playbook to deploy the entire stack. This will install and configure Prometheus, Grafana, and common exporters.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install prometheus_client ollama requests
 
-    ```bash
-    ansible-playbook -i ansible/inventory ansible/main.yml
-    ```
+```
 
-## 🛠️ Components
+### 3. Start the Data Pipeline
 
-### Prometheus
+Run the trade generator to begin pushing latency metrics to the gateway:
 
-  * The core metrics engine. Configured via Ansible to scrape metrics from:
-      * **Node Exporter:** For host-level metrics (CPU, memory, disk).
-      * **JMX Exporter:** For metrics from Java applications (JVM, custom metrics).
-      * **C++ & Python Exporters:** Use client libraries to expose metrics for scraping.
-      * **Prometheus Pushgateway:** For metrics from batch jobs or short-lived processes.
+```bash
+python trade_data_gen1.py
 
-### Grafana
+```
 
-  * The primary visualization tool. Ansible will automatically:
-      * Install Grafana.
-      * Set up the Prometheus data source.
-      * Push and synchronize pre-built dashboards for a quick start.
+### 4. Run the AI Analyst
 
-### Ansible Playbooks
+Ensure you have **Ollama** installed and the Llama 3.2 model pulled:
 
-  * Organized into roles for modularity.
-  * `prometheus_role`: Installs and configures the Prometheus server.
-  * `grafana_role`: Installs and configures Grafana, including dashboard provisioning.
-  * `exporters_role`: Installs and manages various exporters (Node, JMX, etc.) on target hosts.
+```bash
+ollama pull llama3.2
+python query_prom.py
 
-## 🤝 Contribution
+```
 
-We welcome contributions\! Please feel free to open issues or submit pull requests to help improve STORM. See the `CONTRIBUTING.md` file for more details.
+## 📊 Key Metrics Tracked
 
-## 📄 License
+| Metric Name | Labels | Description |
+| --- | --- | --- |
+| `efx_trade_latency_seconds` | `venue`, `pair`, `side` | Histogram of execution times. |
+| `up` | `instance`, `job` | Health status of the monitoring targets. |
 
-This project is licensed under the **Apache License 2.0**. See the `LICENSE` file for more details.
+## 🤖 Example AI Queries
 
------
+You can ask the Assistant questions like:
+
+* *"Which venue currently has the highest P95 latency?"*
+* *"Is there a latency spike on EUR/USD trades in LMAX?"*
+* *"Summarize the last 5 minutes of trade volume across all venues."*
+
+## 📜 License
+
+MIT License - feel free to use this for your own trading infrastructure research.
+
+---
+
+### Pro-Tip for your GitHub:
+
+If you want to make this look even more "Pro," I can help you write a **`docker-compose.yml`** section for your README that includes **Grafana**, so you can show a screenshot of a dashboard alongside the AI chat. **Would you like me to add that?**
