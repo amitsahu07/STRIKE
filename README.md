@@ -1,5 +1,5 @@
 
-# EFX Trade Latency Monitoring & AI Analyst
+# AI powered eTrading observability
 
 This project implements a real-time monitoring pipeline for Electronic Foreign Exchange (EFX) trade latencies across multiple venues, featuring an **AI-powered Trading Assistant** (Llama 3.2) that can query metrics using natural language.
 
